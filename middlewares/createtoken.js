@@ -7,7 +7,7 @@ const createTokenandCookies = (req, res, user) => {
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // only true in production
+    secure: true, // only true in production
     sameSite: "lax", // allow cross-origin on localhost
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });

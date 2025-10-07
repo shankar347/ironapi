@@ -19,7 +19,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(
   cors({
-    origin: "http://localhost:8080", // frontend URL
+    origin:['https://ironweb-5isiqzn47-shankar347s-projects.vercel.app',
+    'https://ironweb.vercel.app'
+    ] ,// frontend URL
     credentials: true, // allow cookies
   })
 );
