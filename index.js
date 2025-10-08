@@ -21,7 +21,8 @@ app.use(helmet());
 app.use(
   cors({
     origin:['https://ironweb-5isiqzn47-shankar347s-projects.vercel.app',
-    'https://ironweb.vercel.app'
+    'https://ironweb.vercel.app',
+    'http://localhost:8080'
     ] ,// frontend URL
     credentials: true, // allow cookies
   })
