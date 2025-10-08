@@ -1,24 +1,15 @@
-import nodemailer from "nodemailer";
+import sgMail from '@sendgrid/mail';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "sivaaadi96@gmail.com",
-    pass: "omgz llkn avlm cbof", // Use app password, not your real password
-  },
-});
+// Set your SendGrid API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-async function sendEnquiryConfirmation({
-  name,
-  email,
-  phone,
-  subject,
-  message,
-}) {
-  const mailOptions = {
-    from: "sivaaadi96@gmail.com",
-    to: "sivaaadi96@gmail.com", // Send confirmation to the user
-    subject: "We Received Your Enquiry",
+async function sendEnquiryConfirmation({ name, email, phone, subject, message }) {
+  const msg = {
+    to: email, // send to the user who submitted the form
+    from: process.env.SENDGRID_FROM_EMAIL, // your verified SendGrid sender
+    subject: 'We Received Your Enquiry',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
         <h2 style="text-align: center; color: #2196F3;">Enquiry Received</h2>
@@ -45,7 +36,12 @@ async function sendEnquiryConfirmation({
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    await sgMail.send(msg);
+    console.log(`Enquiry confirmation sent to ${email}`);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export default sendEnquiryConfirmation;

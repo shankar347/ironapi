@@ -1,22 +1,15 @@
-import nodemailer from "nodemailer";
-import dotenv from 'dotenv'
-dotenv.config()
+import sgMail from '@sendgrid/mail';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // use SSL
- auth: {
-  user: process.env.GMAIL_USER,
-  pass: process.env.GMAIL_PASS,
-},
-});
+// Set your SendGrid API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 async function sendOTP(email, otp) {
-  const mailOptions = {
-    from: "sivaaadi96@gmail.com",
-    to: email,
-    subject: "Your Login OTP",
+  const msg = {
+    to: email, // recipient
+    from: process.env.SENDGRID_FROM_EMAIL, // verified sender in SendGrid
+    subject: 'Your Login OTP',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
         <h2 style="text-align: center; color: #4CAF50;">Login OTP</h2>
@@ -28,7 +21,12 @@ async function sendOTP(email, otp) {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    await sgMail.send(msg);
+    console.log(`OTP sent to ${email}`);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export default sendOTP;
