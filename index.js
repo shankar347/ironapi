@@ -9,6 +9,7 @@ import TransactionRouter from "./routes/transactionroutes.js";
 import AdminRouter from "./routes/adminroutes.js";
 
 import dotenv from "dotenv";
+import connectDB from "./helper/connectDb.js";
 
 const app = express();
 
@@ -34,7 +35,8 @@ app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/admin",AdminRouter );
 app.use("/api/v1/transactions", TransactionRouter);
 
-mongoose.connect(process.env.MONGO_URI);
+
+await connectDB()
 
 app.listen(process.env.PORT, () => {
   console.log("Server is running on ", process.env.PORT);
