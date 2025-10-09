@@ -8,7 +8,9 @@ const createorder = async (req, res) => {
     const { area, city, houseno, name, phoneno, pincode, streetname } =
       userdetails;
 
-    const { paymenttype, timeslot, totalamount, totalcloths } = otherdetails;
+    const { paymenttype, timeslot, totalamount, totalcloths ,
+      deliverySpeed
+    } = otherdetails;
 
     const user = req.user;
 
@@ -36,6 +38,7 @@ const createorder = async (req, res) => {
       order_totalcloths: totalcloths,
       order_slot: timeslot,
       order_paymenttype: paymenttype,
+      order_deliveryspeed: deliverySpeed
     });
 
     await order.save();

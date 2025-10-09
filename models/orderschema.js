@@ -65,6 +65,9 @@ const Orderschema = new mongoose.Schema(
     order_paymenttype:{
       type:String,
     },
+    order_deliveryspeed:{
+      type:String
+    },
     order_flow: {
     type: [Orderflowschema],
     default: () => [

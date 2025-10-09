@@ -7,7 +7,7 @@ import userRouter from "./routes/userroutes.js";
 import orderRouter from "./routes/orderroutes.js";
 import TransactionRouter from "./routes/transactionroutes.js";
 import AdminRouter from "./routes/adminroutes.js";
-
+import {v2 as cloudinary}  from 'cloudinary'
 import dotenv from "dotenv";
 import connectDB from "./helper/connectDb.js";
 
@@ -35,6 +35,12 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/admin",AdminRouter );
 app.use("/api/v1/transactions", TransactionRouter);
+
+cloudinary.config({
+    cloud_name:process.env.CLOUDINARY_NAME,
+    api_key:process.env.CLOUDINARY_APIKEY,
+    api_secret:process.env.CLOUDINARY_APIKEYSECRET  
+})
 
 
 await connectDB()

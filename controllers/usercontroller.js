@@ -5,6 +5,8 @@ import Email from "../models/emailschema.js";
 import User from "../models/userschema.js";
 import bcryptjs from "bcryptjs";
 import sendEnquiryConfirmation from "../helper/emailenquery.js";
+import Banner from "../models/bannerschema.js";
+import Video from "../models/videoschema.js";
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
@@ -307,6 +309,41 @@ const Enquerymail = async (req, res) => {
   }
 };
 
+const getbanners=async(req,res)=>{
+    try{
+          const Banners=await Banner.find({})
+
+          res.status(200).json({
+            message:"banners fetched successfully",
+            daa:Banners
+          })
+    }
+    catch (err) {
+    res.json({ err: "Error in Logout user!" });
+    console.log(err);
+  }
+}
+
+const getHomevideo=async(req,res)=>{
+  try{
+const Homevideo=await Video.findOne({name:'homevideo'})
+
+  if(!Homevideo)
+  {
+    return res.status(404).json({error:"Video not found"})
+  }
+
+  res.status(200).json({message:"Video fetched successfully",
+    data:Homevideo
+  })
+
+  }
+  catch (err) {
+    res.json({ err: "Error in Logout user!" });
+    console.log(err);
+  }
+}
+
 export {
   SignUp,
   Login,
@@ -317,4 +354,6 @@ export {
   Profileupdate,
   generateEmailOtp,
   Enquerymail,
+  getbanners,
+  getHomevideo
 };

@@ -13,6 +13,7 @@ const emailschema=new mongoose.Schema({
     }
 })
 
+
 const Email=mongoose.model('email',emailschema)
 
 export default Email

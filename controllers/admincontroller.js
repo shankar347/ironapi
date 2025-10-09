@@ -1,5 +1,8 @@
+import Banner from "../models/bannerschema.js";
 import Order from "../models/orderschema.js";
 import User from "../models/userschema.js";
+import {v2 as cloudinary}  from 'cloudinary'
+import Video from "../models/videoschema.js";
 
 const getAllusers = async (req, res) => {
   try {
@@ -177,6 +180,114 @@ const assignAgenttoOrders = async (req, res) => {
   }
 };
 
+
+
+ const updatebanner = async (req, res) => {
+  try {
+    const { header, subHeader } = req.body;
+
+    if (!req.file || !header || !subHeader) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Convert Multer buffer -> Cloudinary stream upload
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "banners" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+    };
+
+    const uploadResult = await uploadToCloudinary();
+    console.log(uploadResult)
+
+    const newBanner = new Banner({
+      header,
+      subHeader,
+      banner: uploadResult.secure_url,
+    });
+
+    await newBanner.save();
+
+    res.status(201).json({
+      message: "Banner uploaded successfully",
+      banner: newBanner,
+    });
+  } catch (error) {
+    console.error("Error uploading banner:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+const uploadHomeVideo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No video file provided" });
+    }
+
+    // Upload video to Cloudinary
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "homepage_videos",
+            resource_type: "video",
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    };
+
+    const uploadResult = await uploadToCloudinary();
+
+    // Check if a document with name 'homevideo' exists
+    let existingVideo = await Video.findOne({ name: "homevideo" });
+
+    if (existingVideo) {
+      // Update existing video URL
+      existingVideo.video = uploadResult.secure_url;
+      await existingVideo.save();
+
+      return res.status(200).json({
+        message: "Homepage video updated successfully",
+        video: existingVideo,
+      });
+    } else {
+      // Create new video document
+      const newVideo = new Video({
+        name: "homevideo",
+        video: uploadResult.secure_url,
+      });
+
+      await newVideo.save();
+
+      return res.status(201).json({
+        message: "Homepage video created successfully",
+        video: newVideo,
+      });
+    }
+  } catch (error) {
+    console.error("Error uploading video:", error);
+    res.status(500).json({
+      message: "Video upload failed",
+      error: error.message,
+    });
+  }
+};
+
+
 export {
   getAllagents,
   getAllorders,
@@ -188,4 +299,6 @@ export {
   acceptAgentlogin,
   getAllagentsapplied,
   gettodayorders,
+  updatebanner,
+  uploadHomeVideo
 };

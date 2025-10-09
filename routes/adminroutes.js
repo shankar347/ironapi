@@ -11,11 +11,70 @@ import {
   getAllorders,
   getAllusers,
   gettodayorders,
+  updatebanner,
+  uploadHomeVideo,
 } from "../controllers/admincontroller.js";
 import Authuser from "../middlewares/authuser.js";
 import Authagent from "../middlewares/authagent.js";
+import multer from "multer";
+
 
 const Router = express.Router();
+
+const upload=multer({storage:multer.memoryStorage(),
+        limits:{
+                fileSize:1024*1024*15,
+                fieldSize:1024*1024*15,
+                fields:10 
+        }
+}).single('banner')
+
+const uploadVideo=multer({storage:multer.memoryStorage(),
+        limits:{
+                fileSize:1024*1024*25,
+        }
+}).single('video')
+
+const handlemulterupload=(req,res,next)=>{
+        upload(req,res,(err)=>{
+                if(err instanceof multer.MulterError){
+                   if(err.code === 'LIMIT_FILE_SIZE')
+                   {
+                     return  res.status(200).json({error:'file size should be less than 15MB'})
+                   } 
+                   else if (err.code === 'LIMIT_FIELD_VALUE')
+                   {
+                        return res.status(200).json({error:'file size should be less than 15MB'})
+                   }
+                   return res.status(200).json({error:err.message})
+                }
+                else if(err){
+                   return res.json({error: "Unknown error in uploading file"})
+                }
+                next()
+        })
+}
+
+const handlemultervideoupload=(req,res,next)=>{
+        uploadVideo(req,res,(err)=>{
+                if(err instanceof multer.MulterError){
+                   if(err.code === 'LIMIT_FILE_SIZE')
+                   {
+                     return  res.status(200).json({error:'file size should be less than 15MB'})
+                   } 
+                   else if (err.code === 'LIMIT_FIELD_VALUE')
+                   {
+                        return res.status(200).json({error:'file size should be less than 15MB'})
+                   }
+                   return res.status(200).json({error:err.message})
+                }
+                else if(err){
+                   return res.json({error: "Unknown error in uploading file"})
+                }
+                next()
+        })
+}
+
 
 // user routes
 
@@ -35,5 +94,8 @@ Router.put("/activateagent", Authuser, Authadmin, acceptAgentlogin);
 
 Router.get("/allorders", Authuser, Authadmin, getAllorders);
 Router.get("/alltodayorders", Authuser, Authadmin, gettodayorders);
+Router.post('/updatebanner',Authuser,Authadmin,handlemulterupload,updatebanner)
+Router.put('/updatevideo',Authuser,Authadmin,handlemultervideoupload,uploadHomeVideo)
+
 
 export default Router;

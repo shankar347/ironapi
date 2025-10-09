@@ -3,6 +3,8 @@ import {
   AddwalletMoney,
   Enquerymail,
   generateEmailOtp,
+  getbanners,
+  getHomevideo,
   getProfile,
   Login,
   Logout,
@@ -21,5 +23,8 @@ router.put("/addwalletmoney", AddwalletMoney);
 router.delete("/logout", Logout);
 router.put("/updateprofile", Authuser, Profileupdate);
 router.get("/profile", Authuser, getProfile);
+router.get('/banners',getbanners)
+router.get('/homevideo',getHomevideo)
+
 
 export default router;
