@@ -21,7 +21,7 @@ app.use(helmet());
 app.use(
   cors({
     origin:[
-     'https://www.steemer.in/',
+     'https://www.steemer.in',
     'https://ironweb.vercel.app',
     'http://localhost:8080',
     ] ,// frontend URL
