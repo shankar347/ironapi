@@ -10,6 +10,7 @@ import AdminRouter from "./routes/adminroutes.js";
 import {v2 as cloudinary}  from 'cloudinary'
 import dotenv from "dotenv";
 import connectDB from "./helper/connectDb.js";
+import { injectSpeedInsights } from '@vercel/speed-insights';
 
 const app = express();
 
@@ -36,6 +37,10 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/admin",AdminRouter );
 app.use("/api/v1/transactions", TransactionRouter);
+
+
+injectSpeedInsights();
+
 
 cloudinary.config({
     cloud_name:process.env.CLOUDINARY_NAME,
