@@ -3,13 +3,16 @@ import Authadmin from "../middlewares/authadmin.js";
 import {
   acceptAgentlogin,
   assignAgenttoOrders,
+  deletebanner,
   deleteuser,
+  Editbanners,
   getAgentorders,
   getAgenttodayorders,
   getAllagents,
   getAllagentsapplied,
   getAllorders,
   getAllusers,
+  getBanners,
   gettodayorders,
   updatebanner,
   uploadHomeVideo,
@@ -95,6 +98,9 @@ Router.put("/activateagent", Authuser, Authadmin, acceptAgentlogin);
 Router.get("/allorders", Authuser, Authadmin, getAllorders);
 Router.get("/alltodayorders", Authuser, Authadmin, gettodayorders);
 Router.post('/updatebanner',Authuser,Authadmin,handlemulterupload,updatebanner)
+Router.get('/getbanners',Authuser,Authadmin,getBanners)
+Router.put('/editbanner/:id',Authuser,Authadmin,handlemulterupload,Editbanners)
+Router.delete('/deletebanner/:id',Authuser,Authadmin,deletebanner)
 Router.put('/updatevideo',Authuser,Authadmin,handlemultervideoupload,uploadHomeVideo)
 
 

@@ -6,7 +6,7 @@ import Video from "../models/videoschema.js";
 
 const getAllusers = async (req, res) => {
   try {
-    const Users = await User.find({ isagent: false, isagentapplied: false });
+    const Users = await User.find({ isagent: false, isagentapplied: false }).sort({createdAt:-1});
     res
       .status(200)
       .json({ data: Users, message: "Users fetched successfully" });
@@ -33,7 +33,7 @@ const deleteuser = async (req, res) => {
 
 const getAllagents = async (req, res) => {
   try {
-    const Agents = await User.find({ isagent: true });
+    const Agents = await User.find({ isagent: true }).sort({createdAt:-1});
 
     res
       .status(200)
@@ -107,7 +107,7 @@ const gettodayorders = async (req, res) => {
         $gte: startOfDay,
         $lte: endOfDay,
       },
-    });
+    }).sort({createdAt:-1});
     res
       .status(200)
       .json({ message: "Today orders fetched successful", data: Orders });
@@ -139,7 +139,7 @@ const acceptAgentlogin = async (req, res) => {
 
 const getAllorders = async (req, res) => {
   try {
-    const Orders = await Order.find({});
+    const Orders = await Order.find({}).sort({createdAt:-1});
 
     res
       .status(200)
@@ -205,7 +205,7 @@ const assignAgenttoOrders = async (req, res) => {
     };
 
     const uploadResult = await uploadToCloudinary();
-    console.log(uploadResult)
+    // console.log(uploadResult)
 
     const newBanner = new Banner({
       header,
@@ -226,6 +226,99 @@ const assignAgenttoOrders = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
+const getBanners=async(req,res)=>{
+  try{
+    const Banners=await Banner.find({})
+
+    res.status(200).json({"message":"Banners fetched successfully",
+      data:Banners
+    })
+  }
+  catch (error) {
+    console.error("Error uploading banner:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+}
+
+const Editbanners=async(req,res)=>{
+   try{
+      const {id} = req.params
+
+      const { header, subHeader } = req.body;
+
+  
+      const banner =  await Banner.findById(id)
+
+      if (!banner)
+      {
+        res.status(404).message({error:"Banner not found"})
+      }
+
+      if (header) banner.header = header
+      if (subHeader) banner.subHeader = subHeader
+
+      if (req.file)
+      {
+  const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "banners" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+    };
+
+    const uploadResult = await uploadToCloudinary();
+
+     banner.banner = uploadResult.secure_url
+      }
+
+
+    await banner.save();
+
+    res.status(201).json({
+      message: "Banner updated successfully",
+      banner: banner,
+    });
+
+   }
+   catch (error) {
+    console.error("Error uploading banner:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+}
+
+const deletebanner=async(req,res)=>{
+  try{
+   const {id} = req.params
+   const banner=await Banner.findById(id)
+
+   if (!banner)
+   {
+    return res.status(404).json({errror:"Banner not found"})
+   }
+
+  await Banner.findByIdAndDelete(id)
+
+  res.status(200).json({message:"Banner deleted successfullly"})
+
+  }
+  catch (error) {
+    console.error("Error uploading banner:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+}
 
 const uploadHomeVideo = async (req, res) => {
   try {
@@ -300,5 +393,8 @@ export {
   getAllagentsapplied,
   gettodayorders,
   updatebanner,
-  uploadHomeVideo
+  uploadHomeVideo,
+  getBanners,
+  Editbanners,
+  deletebanner
 };
