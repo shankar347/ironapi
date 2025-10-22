@@ -3,6 +3,7 @@ import Order from "../models/orderschema.js";
 import User from "../models/userschema.js";
 import {v2 as cloudinary}  from 'cloudinary'
 import Video from "../models/videoschema.js";
+import Bookitem from "../models/bookitemschema.js";
 
 const getAllusers = async (req, res) => {
   try {
@@ -381,6 +382,111 @@ const uploadHomeVideo = async (req, res) => {
 };
 
 
+const createbookItems=async(req,res)=>{
+  try{
+      const {name,price} = req.body
+      // console.log(name,price,'hi')
+      if (!name ||  !price) 
+      {
+        return res.status(400).json({error:"Both Name and price is required"})
+      }
+
+      const BookItem=new Bookitem({
+        name,
+        price
+      })
+
+      await BookItem.save()
+
+      res.status(200).json({message:"Book Item added successfully"})
+  }
+  catch(error)
+  {
+   console.error("Error uploading video:", error);
+    res.status(500).json({
+      message: "Items upload failed",
+      error: error.message,
+    });
+  }
+}
+
+const getbookItems=async(req,res)=>{
+  try{
+    const Bookitems=await Bookitem.find({}).sort({createdAt:1})
+
+    res.status(200).json({message:"Book items fetched successfully",
+      data:Bookitems
+    })
+
+  }
+  catch(error)
+  {
+   console.error("Error uploading video:", error);
+    res.status(500).json({
+      message: "Items upload failed",
+      error: error.message,
+    });
+  }
+}
+
+const deletebookItems=async(req,res)=>{
+  try{
+    const findItems=await Bookitem.findById(req.params.id)
+    
+    if (!findItems)
+    {
+      return res.status(404).json({error:"Item not found"})
+    }
+
+    await Bookitem.findByIdAndDelete(req.params.id)
+
+    return res.status(200).json({message:"Book item deleted successfully"
+    })
+
+  }
+  catch(error)
+  {
+   console.error("Error uploading video:", error);
+    res.status(500).json({
+      message: "Items upload failed",
+      error: error.message,
+    });
+  }
+}
+
+const editbookitems=async(req,res)=>{
+ try{
+
+  const {name,price}=req.body
+
+  const findItems=await Bookitem.findById(req.params.id)
+
+  if (!findItems)
+  {
+    return res.status(404).json({error:"Item not found"})
+  }
+
+   if (name) findItems.name  = name 
+   if (price) findItems.price = price
+
+   await findItems.save()
+
+   return res.status(200).json({message:"Item updated successfully"
+    ,data:findItems
+ })
+
+ }
+  catch(error)
+  {
+   console.error("Error uploading video:", error);
+    res.status(500).json({
+      message: "Items upload failed",
+      error: error.message,
+    });
+  }
+}
+
+
 export {
   getAllagents,
   getAllorders,
@@ -396,5 +502,9 @@ export {
   uploadHomeVideo,
   getBanners,
   Editbanners,
-  deletebanner
+  deletebanner,
+  createbookItems,
+  editbookitems,
+  deletebookItems,
+  getbookItems
 };

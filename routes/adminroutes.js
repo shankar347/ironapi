@@ -3,9 +3,12 @@ import Authadmin from "../middlewares/authadmin.js";
 import {
   acceptAgentlogin,
   assignAgenttoOrders,
+  createbookItems,
   deletebanner,
+  deletebookItems,
   deleteuser,
   Editbanners,
+  editbookitems,
   getAgentorders,
   getAgenttodayorders,
   getAllagents,
@@ -13,6 +16,7 @@ import {
   getAllorders,
   getAllusers,
   getBanners,
+  getbookItems,
   gettodayorders,
   updatebanner,
   uploadHomeVideo,
@@ -84,6 +88,10 @@ const handlemultervideoupload=(req,res,next)=>{
 Router.get("/allusers", Authuser, Authadmin, getAllusers);
 Router.delete("/deleteusers/:id", Authuser, Authadmin, deleteuser);
 Router.put("/assignagentorders", Authuser, Authadmin, assignAgenttoOrders);
+Router.get('/getbookitems',Authuser,getbookItems)
+Router.post('/createbookitems',Authuser,Authadmin,createbookItems)
+Router.put('/editbookitems/:id',Authuser,Authadmin,editbookitems)
+Router.delete('/deletebookitems/:id',Authuser,Authadmin,deletebookItems)
 
 // agent routes
 
