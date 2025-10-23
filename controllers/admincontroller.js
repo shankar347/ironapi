@@ -116,6 +116,29 @@ const gettodayorders = async (req, res) => {
     console.log(error);
   }
 };
+
+const deleteorder=async(req,res)=>{
+  try{
+const findOrder=await Order.findById(req.params.id)
+
+if (!findOrder)
+{
+  return res.status(404).json({error:"Order not found"})
+}
+  
+  await Order.findByIdAndDelete(req.params.id)
+
+  res.status(200).json({message:"Order deleted successfully"})
+
+  }
+  catch(err)
+  {
+    console.log(err)
+  }
+}
+
+
+
 const acceptAgentlogin = async (req, res) => {
   try {
     const { agent_id, action } = req.body;
@@ -321,65 +344,65 @@ const deletebanner=async(req,res)=>{
   }
 }
 
-const uploadHomeVideo = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No video file provided" });
+  const uploadHomeVideo = async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No video file provided" });
+      }
+
+      // Upload video to Cloudinary
+      const uploadToCloudinary = () => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "homepage_videos",
+              resource_type: "video",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+      };
+
+      const uploadResult = await uploadToCloudinary();
+
+      // Check if a document with name 'homevideo' exists
+      let existingVideo = await Video.findOne({ name: "homevideo" });
+
+      if (existingVideo) {
+        // Update existing video URL
+        existingVideo.video = uploadResult.secure_url;
+        await existingVideo.save();
+
+        return res.status(200).json({
+          message: "Homepage video updated successfully",
+          video: existingVideo,
+        });
+      } else {
+        // Create new video document
+        const newVideo = new Video({
+          name: "homevideo",
+          video: uploadResult.secure_url,
+        });
+
+        await newVideo.save();
+
+        return res.status(201).json({
+          message: "Homepage video created successfully",
+          video: newVideo,
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      res.status(500).json({
+        message: "Video upload failed",
+        error: error.message,
+      });
     }
-
-    // Upload video to Cloudinary
-    const uploadToCloudinary = () => {
-      return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "homepage_videos",
-            resource_type: "video",
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        uploadStream.end(req.file.buffer);
-      });
-    };
-
-    const uploadResult = await uploadToCloudinary();
-
-    // Check if a document with name 'homevideo' exists
-    let existingVideo = await Video.findOne({ name: "homevideo" });
-
-    if (existingVideo) {
-      // Update existing video URL
-      existingVideo.video = uploadResult.secure_url;
-      await existingVideo.save();
-
-      return res.status(200).json({
-        message: "Homepage video updated successfully",
-        video: existingVideo,
-      });
-    } else {
-      // Create new video document
-      const newVideo = new Video({
-        name: "homevideo",
-        video: uploadResult.secure_url,
-      });
-
-      await newVideo.save();
-
-      return res.status(201).json({
-        message: "Homepage video created successfully",
-        video: newVideo,
-      });
-    }
-  } catch (error) {
-    console.error("Error uploading video:", error);
-    res.status(500).json({
-      message: "Video upload failed",
-      error: error.message,
-    });
-  }
-};
+  };
 
 
 const createbookItems=async(req,res)=>{
@@ -487,6 +510,7 @@ const editbookitems=async(req,res)=>{
 }
 
 
+
 export {
   getAllagents,
   getAllorders,
@@ -494,6 +518,7 @@ export {
   deleteuser,
   assignAgenttoOrders,
   getAgentorders,
+  deleteorder,
   getAgenttodayorders,
   acceptAgentlogin,
   getAllagentsapplied,

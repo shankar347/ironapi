@@ -9,7 +9,7 @@ const createTokenandCookies = (req, res, user) => {
     secure: true, // must be true for HTTPS (Render)
     sameSite: "none", // required for cross-site requests
     path: "/", // makes it available everywhere
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 7 days
   });
 
   return token;

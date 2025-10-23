@@ -6,6 +6,7 @@ import {
   createbookItems,
   deletebanner,
   deletebookItems,
+  deleteorder,
   deleteuser,
   Editbanners,
   editbookitems,
@@ -104,6 +105,7 @@ Router.put("/activateagent", Authuser, Authadmin, acceptAgentlogin);
 // order routes
 
 Router.get("/allorders", Authuser, Authadmin, getAllorders);
+Router.delete("/deleteorders/:id", Authuser, Authadmin, deleteorder);
 Router.get("/alltodayorders", Authuser, Authadmin, gettodayorders);
 Router.post('/updatebanner',Authuser,Authadmin,handlemulterupload,updatebanner)
 Router.get('/getbanners',Authuser,Authadmin,getBanners)
