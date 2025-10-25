@@ -26,7 +26,6 @@ const Orderflowschema = new mongoose.Schema(
         "Order placed",
         "Agent arriving",
         "Collected clothes",
-        "Clothes reached warehouse",
         "Clothes arriving to customer",
         "Clothes delivered",
       ],
@@ -39,6 +38,9 @@ const Orderflowschema = new mongoose.Schema(
 
 const Orderschema = new mongoose.Schema(
   {
+    orderid:{
+      type:Number,
+    },
     userid: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

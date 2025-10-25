@@ -22,7 +22,13 @@ const createorder = async (req, res) => {
       });
     }
 
+
+    let orderid=await  Order.countDocuments({})
+    
+    
+
     const order = new Order({
+      orderid,
       userid: user?._id,
       user_name: name,
       user_phoneno: phoneno,
