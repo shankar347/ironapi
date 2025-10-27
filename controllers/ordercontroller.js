@@ -54,6 +54,7 @@ const createorder = async (req, res) => {
       message: "Order created successfully",
     });
   } catch (error) {
+    console.log(error,'err')
     res.json({ error: "Error in creating the Order" });
   }
 };

@@ -76,7 +76,6 @@ const Orderschema = new mongoose.Schema(
       { step: "Order placed", completed: true, completedAt: new Date() },
       { step: "Agent arriving", completed: false },
       { step: "Collected clothes", completed: false },
-      { step: "Clothes reached warehouse", completed: false },
       { step: "Clothes arriving to customer", completed: false },
       { step: "Clothes delivered", completed: false }
     ]

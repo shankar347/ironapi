@@ -77,6 +77,8 @@ const getAgenttodayorders = async (req, res) => {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
+   
+
     // Fetch orders for today
     const Orders = await Order.find({
       agent_id: req?.user?._id,
