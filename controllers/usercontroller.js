@@ -106,6 +106,8 @@ const SignUp = async (req, res) => {
 
     const token = createTokenandCookies(req, res, user.toObject());
 
+    console.log('user',user)
+
     res.status(200).json({
       data: user,
       message: "Welcome! Registered successfully",
@@ -149,16 +151,14 @@ const Login = async (req, res) => {
     res.json({ err: err });
     console.log(err);
   }
-};
+};          
 
 const generateEmailOtp = async (req, res) => {
   try {
     const { formdata, isagentlogin } = req.body;
-
     const { email } = formdata;
 
     const checkemail = await User.findOne({ email });
-    console.log(isagentlogin, "hi");
 
     if (!checkemail) {
       return res.status(400).json({
@@ -167,42 +167,40 @@ const generateEmailOtp = async (req, res) => {
     }
 
     if (isagentlogin && !checkemail.isagentapplied && !checkemail.isagent) {
-      res
-        .status(400)
-        .json({ error: "Sorry user!, Agent only can login here " });
+      return res.status(400).json({ 
+        error: "Sorry user!, Agent only can login here" 
+      });
     }
 
     if (checkemail.isagentapplied && !checkemail.isagent) {
-      return res
-        .status(404)
-        .json({ error: "Sorry Agent!,  Admin is not activated you yet " });
+      return res.status(404).json({ 
+        error: "Sorry Agent!, Admin is not activated you yet" 
+      });
     }
 
     let otp = generateOTP();
-
     const expiry = Date.now() + 5 * 60 * 1000;
 
-    await Email.create({
-      email,
-      otp,
-      expiry,
-    });
+    await Email.create({ email, otp, expiry });
+    console.log(`Generated OTP for ${email}: ${otp}`);
 
-    sendOTP(email, otp);
+    // Send OTP email 
+    await sendOTP(email, otp);
 
     return res.status(200).json({
       message: "OTP sent successfully",
     });
   } catch (err) {
-    console.log(err);
+    console.error('Error in generateEmailOtp:', err);
     res.status(500).json({
-      error: "Error in generating Email Otp",
+      error: "Error in generating Email OTP",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
 
 const getProfile = async (req, res) => {
-  try {
+  try { 
     const user_id = req?.user?._id;
 
     const user = await User.findById(user_id);

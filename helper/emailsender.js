@@ -2,13 +2,29 @@ import sgMail from '@sendgrid/mail';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Set your SendGrid API key
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Verify API key is loaded
+if (!process.env.SENDGRID_API_KEY) {
+  console.error('SENDGRID_API_KEY is not set in environment variables');
+} else {
+  console.log('SendGrid API Key is set');
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
+
+// Verify sender email is loaded
+if (!process.env.SENDGRID_FROM_EMAIL) {
+  console.error('SENDGRID_FROM_EMAIL is not set in environment variables');
+} else {
+  console.log(`Sender email: ${process.env.SENDGRID_FROM_EMAIL}`);
+}
 
 async function sendOTP(email, otp) {
+  // Log what's being sent
+  console.log(`Attempting to send OTP to: ${email}`);
+  console.log(`Using sender: ${process.env.SENDGRID_FROM_EMAIL}`);
+
   const msg = {
-    to: email, // recipient
-    from: process.env.SENDGRID_FROM_EMAIL, // verified sender in SendGrid
+    to: email,
+    from: process.env.SENDGRID_FROM_EMAIL,
     subject: 'Your Login OTP',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
@@ -23,9 +39,16 @@ async function sendOTP(email, otp) {
 
   try {
     await sgMail.send(msg);
-    console.log(`OTP sent to ${email}`);
+    console.log(`OTP sent successfully to ${email}`);
   } catch (error) {
-    console.error(error);
+    console.error('Error sending email:', error.message);
+    console.error('Full error details:', error.response?.body?.errors || error);
+    
+    // Log specific SendGrid API issues
+    if (error.response) {
+      console.error('Status Code:', error.code);
+      console.error('Response Body:', JSON.stringify(error.response.body, null, 2));
+    }
   }
 }
 
