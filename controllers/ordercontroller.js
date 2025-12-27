@@ -1,64 +1,64 @@
 import Order from "../models/orderschema.js";
 import User from "../models/userschema.js";
 
-const createorder = async (req, res) => {
-  try {
-    const { otherdetails, userdetails ,order_cloths} = req.body;
+  const createorder = async (req, res) => {
+    try {
+      const { otherdetails, userdetails ,order_cloths } = req.body;
 
-    const { area, city, houseno, name, phoneno, pincode, streetname } =
-      userdetails;
+      const { area, city, houseno, name, phoneno, pincode, streetname } =
+        userdetails;
 
-    const { paymenttype, timeslot, totalamount, totalcloths ,
-      deliverySpeed
-    } = otherdetails;
+      const { paymenttype, timeslot, totalamount, totalcloths ,
+        deliverySpeed
+      } = otherdetails;
 
-    const user = req.user;
+      const user = req.user;
 
-    const checkuser_registered = await User.findById(user?._id);
+      const checkuser_registered = await User.findById(user?._id);
 
-    if (!checkuser_registered) {
-      return res.status(500).json({
-        error: "Please signup to book slots",
+      if (!checkuser_registered) {
+        return res.status(500).json({
+          error: "Please signup to book slots",
+        });
+      }
+
+
+      let orderid=await  Order.countDocuments({})
+      
+      
+
+      const order = new Order({
+        orderid,
+        userid: user?._id,
+        user_name: name,
+        user_phoneno: phoneno,
+        user_address: {
+          houseno,
+          streetname,
+          area,
+          city,
+          pincode,
+        },
+        order_cloths,
+        order_date: new Date(),
+        order_totalamount: totalamount,
+        order_totalcloths: totalcloths,
+        order_slot: timeslot,
+        order_paymenttype: paymenttype,
+        order_deliveryspeed: deliverySpeed
       });
+
+      await order.save();
+
+      res.status(200).json({
+        data: order,
+        message: "Order created successfully",
+      });
+    } catch (error) {
+      console.log(error,'err')
+      res.json({ error: "Error in creating the Order" });
     }
-
-
-    let orderid=await  Order.countDocuments({})
-    
-    
-
-    const order = new Order({
-      orderid,
-      userid: user?._id,
-      user_name: name,
-      user_phoneno: phoneno,
-      user_address: {
-        houseno,
-        streetname,
-        area,
-        city,
-        pincode,
-      },
-      order_cloths,
-      order_date: new Date(),
-      order_totalamount: totalamount,
-      order_totalcloths: totalcloths,
-      order_slot: timeslot,
-      order_paymenttype: paymenttype,
-      order_deliveryspeed: deliverySpeed
-    });
-
-    await order.save();
-
-    res.status(200).json({
-      data: order,
-      message: "Order created successfully",
-    });
-  } catch (error) {
-    console.log(error,'err')
-    res.json({ error: "Error in creating the Order" });
-  }
-};
+  };
 
 const getorder_by_id = async (req, res) => {
   try {
