@@ -3,7 +3,7 @@ import User from "../models/userschema.js";
 
 const createorder = async (req, res) => {
   try {
-    const { otherdetails, userdetails } = req.body;
+    const { otherdetails, userdetails ,order_cloths} = req.body;
 
     const { area, city, houseno, name, phoneno, pincode, streetname } =
       userdetails;
@@ -39,6 +39,7 @@ const createorder = async (req, res) => {
         city,
         pincode,
       },
+      order_cloths,
       order_date: new Date(),
       order_totalamount: totalamount,
       order_totalcloths: totalcloths,

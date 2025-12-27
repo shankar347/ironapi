@@ -55,6 +55,17 @@ const Orderschema = new mongoose.Schema(
     order_date: {
       type: String,
     },
+    order_cloths:[{
+      item:{
+        type:String
+      },
+      cost:{
+        type:String
+      },
+      quantity:{
+        type:String
+      }
+    }],
     order_totalamount: {
       type: String,
     },

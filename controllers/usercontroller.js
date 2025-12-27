@@ -185,7 +185,7 @@ const generateEmailOtp = async (req, res) => {
     console.log(`Generated OTP for ${email}: ${otp}`);
 
     // Send OTP email 
-    await sendOTP(email, otp);
+    // await sendOTP(email, otp);
 
     return res.status(200).json({
       message: "OTP sent successfully",
@@ -198,6 +198,7 @@ const generateEmailOtp = async (req, res) => {
     });
   }
 };
+
 
 const getProfile = async (req, res) => {
   try { 

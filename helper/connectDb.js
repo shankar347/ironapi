@@ -15,4 +15,13 @@ const connectDB = async () => {
 };
 
 
+// const connectDB = async () => {
+//   try {
+//     await mongoose.connect('mongodb://localhost:27017/ironapp');
+//     console.log("✅ MongoDB connected successfully");
+//   } catch (err) {
+//     console.error("❌ MongoDB connection error:", err);
+//   }
+// };
+
 export default connectDB
