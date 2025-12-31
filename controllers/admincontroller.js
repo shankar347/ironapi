@@ -4,6 +4,7 @@ import User from "../models/userschema.js";
 import {v2 as cloudinary}  from 'cloudinary'
 import Video from "../models/videoschema.js";
 import Bookitem from "../models/bookitemschema.js";
+import Bookslot from "../models/bookslotshema.js";
 
 const getAllusers = async (req, res) => {
   try {
@@ -516,6 +517,76 @@ const editbookitems=async(req,res)=>{
 
 
 
+
+// Toggle status (Admin only)
+ const toggleBookingStatus = async (req, res) => {
+    try {
+        const adminId = req.user?.id || "admin";
+        
+        const currentStatus = await Bookslot.findOne();
+        let isOpen = true;
+        
+        if (currentStatus) {
+            isOpen = !currentStatus.isOpen;
+        }
+        
+        const updatedStatus = await Bookslot.findOneAndUpdate(
+            {},
+            { 
+                isOpen, 
+                lastUpdated: Date.now(),
+                updatedBy: adminId 
+            },
+            { 
+                new: true, 
+                upsert: true,
+                setDefaultsOnInsert: true 
+            }
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: `Booking slots are now ${isOpen ? 'OPEN' : 'CLOSED'}`,
+            data: updatedStatus
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error toggling booking status",
+            error: error.message
+        });
+    }
+};
+
+
+
+const getBookingStatus = async (req, res) => {
+    try {
+        // Assuming you only have one document for the entire system
+        let status = await Bookslot.findOne();
+        
+        // If no document exists, create one
+        if (!status) {
+            status = await Bookslot.create({ isOpen: true });
+        }
+        
+        res.status(200).json({
+            success: true,
+            status: status.isOpen,
+            lastUpdated: status.lastUpdated,
+            updatedBy: status.updatedBy
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching booking status",
+            error: error.message
+        });
+    }
+};
+
+
+
 export {
   getAllagents,
   getAllorders,
@@ -536,5 +607,7 @@ export {
   createbookItems,
   editbookitems,
   deletebookItems,
-  getbookItems
+  getbookItems,
+  toggleBookingStatus,
+  getBookingStatus
 };

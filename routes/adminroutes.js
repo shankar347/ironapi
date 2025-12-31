@@ -17,8 +17,10 @@ import {
   getAllorders,
   getAllusers,
   getBanners,
+  getBookingStatus,
   getbookItems,
   gettodayorders,
+  toggleBookingStatus,
   updatebanner,
   uploadHomeVideo,
 } from "../controllers/admincontroller.js";
@@ -112,6 +114,7 @@ Router.get('/getbanners',Authuser,Authadmin,getBanners)
 Router.put('/editbanner/:id',Authuser,Authadmin,handlemulterupload,Editbanners)
 Router.delete('/deletebanner/:id',Authuser,Authadmin,deletebanner)
 Router.put('/updatevideo',Authuser,Authadmin,handlemultervideoupload,uploadHomeVideo)
-
+Router.put('/updatebookstatus',Authuser,Authadmin,toggleBookingStatus)
+Router.get('/getbookstatus',Authuser,getBookingStatus)
 
 export default Router;
