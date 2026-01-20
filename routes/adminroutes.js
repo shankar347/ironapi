@@ -91,7 +91,7 @@ const handlemultervideoupload=(req,res,next)=>{
 Router.get("/allusers", Authuser, Authadmin, getAllusers);
 Router.delete("/deleteusers/:id", Authuser, Authadmin, deleteuser);
 Router.put("/assignagentorders", Authuser, Authadmin, assignAgenttoOrders);
-Router.get('/getbookitems',Authuser,getbookItems)
+Router.get('/getbookitems',getbookItems)
 Router.post('/createbookitems',Authuser,Authadmin,createbookItems)
 Router.put('/editbookitems/:id',Authuser,Authadmin,editbookitems)
 Router.delete('/deletebookitems/:id',Authuser,Authadmin,deletebookItems)
