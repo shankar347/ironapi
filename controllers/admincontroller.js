@@ -74,52 +74,113 @@ const getAgentorders = async (req, res) => {
 
 const getAgenttodayorders = async (req, res) => {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23, 59, 59, 999);
 
-    // End of the day
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Yesterday's date range (for orders that said "tomorrow")
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const startOfYesterday = new Date(yesterday);
+    startOfYesterday.setHours(0, 0, 0, 0);
+    
+    const endOfYesterday = new Date(yesterday);
+    endOfYesterday.setHours(23, 59, 59, 999);
 
-   
-
-    // Fetch orders for today
     const Orders = await Order.find({
       agent_id: req?.user?._id,
-      order_date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
+      $or: [
+        {
+          // Orders placed today
+          order_date: {
+            $gte: today,
+            $lte: endOfToday,
+          }
+        },
+        {
+          // Orders placed yesterday that have "tomorrow" in order_slot
+          // (meaning their "tomorrow" is today)
+          order_date: {
+            $gte: startOfYesterday,
+            $lte: endOfYesterday,
+          },
+          order_slot: { 
+            $regex: /tomorrow/i
+          }
+        }
+      ]
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({ 
+      message: "Agent today orders fetched successfully", 
+      data: Orders,
+      count: Orders.length 
     });
-    res
-      .status(200)
-      .json({ message: "Agent today orders fetched successful", data: Orders });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ 
+      message: "Error fetching agent orders", 
+      error: error.message 
+    });
   }
 };
 
 const gettodayorders = async (req, res) => {
   try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23, 59, 59, 999);
 
-    // End of the day
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Yesterday's date range (for orders that said "tomorrow")
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const startOfYesterday = new Date(yesterday);
+    startOfYesterday.setHours(0, 0, 0, 0);
+    
+    const endOfYesterday = new Date(yesterday);
+    endOfYesterday.setHours(23, 59, 59, 999);
 
-    // Fetch orders for today
     const Orders = await Order.find({
-      order_date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    }).sort({createdAt:-1});
+      $or: [
+        {
+          // Orders placed today
+          order_date: {
+            $gte: today,
+            $lte: endOfToday,
+          }
+        },
+        {
+          // Orders placed yesterday that have "tomorrow" in order_slot
+          // (meaning their "tomorrow" is today)
+          order_date: {
+            $gte: startOfYesterday,
+            $lte: endOfYesterday,
+          },
+          order_slot: { 
+            $regex: /tomorrow/i
+          }
+        }
+      ]
+    }).sort({ createdAt: -1 });
+
     res
       .status(200)
-      .json({ message: "Today orders fetched successful", data: Orders });
+      .json({ 
+        message: "Today orders fetched successfully", 
+        data: Orders,
+        count: Orders.length
+      });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: "Error fetching orders", error: error.message });
   }
 };
 
