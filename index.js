@@ -1,57 +1,53 @@
-import express from "express";
-import cors from "cors";
-import cookieparser from "cookie-parser";
-import mongoose from "mongoose";
-import helmet from "helmet";
-import userRouter from "./routes/userroutes.js";
-import orderRouter from "./routes/orderroutes.js";
-import TransactionRouter from "./routes/transactionroutes.js";
-import AdminRouter from "./routes/adminroutes.js";
-import {v2 as cloudinary}  from 'cloudinary'
-import dotenv from "dotenv";
-import connectDB from "./helper/connectDb.js";
-import { injectSpeedInsights } from '@vercel/speed-insights';
+  import express from "express";
+  import cors from "cors";
+  import cookieparser from "cookie-parser";
+  import mongoose from "mongoose";
+  import helmet from "helmet";
+  import userRouter from "./routes/userroutes.js";
+  import orderRouter from "./routes/orderroutes.js";
+  import TransactionRouter from "./routes/transactionroutes.js";
+  import AdminRouter from "./routes/adminroutes.js";
+  import PaymentRouter from './routes/paymentroutes.js'
+  import dotenv from "dotenv";
+  import connectDB from "./helper/connectDb.js";
+  import { injectSpeedInsights } from '@vercel/speed-insights';
 
-const app = express();
+  const app = express();
 
-dotenv.config();
-// app.use(dotenv.config())
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(helmet());
-app.use(
-  cors({
-    origin:[
-     'https://www.steemer.in',
-    'https://ironweb.vercel.app',
-    'http://localhost:8080',
-    'http://192.168.1.213:8080'
-    ] ,// frontend URL
-    credentials: true, // allow cookies
-  })
-);
-app.use(cookieparser());
+  dotenv.config();
+  // app.use(dotenv.config())
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  app.use(helmet());
+  app.use(
+    cors({
+      origin:[
+      'https://www.steemer.in',
+      'https://ironweb.vercel.app',
+      'http://localhost:8080',
+      'http://192.168.1.213:8080'
+      ] ,// frontend URL
+      credentials: true, // allow cookies
+    })
+  );
+  app.use(cookieparser());
 
-//routes
+  //routes
 
-app.use("/api/v1/user", userRouter);
-app.use("/api/v1/orders", orderRouter);
-app.use("/api/v1/admin",AdminRouter );
-app.use("/api/v1/transactions", TransactionRouter);
+  app.use("/api/v1/user", userRouter);
+  app.use("/api/v1/orders", orderRouter);
+  app.use("/api/v1/admin",AdminRouter );
+  app.use("/api/v1/transactions", TransactionRouter);
+  app.use('/api/v1/payments',PaymentRouter)
 
-
-injectSpeedInsights();
-
-
-cloudinary.config({
-    cloud_name:process.env.CLOUDINARY_NAME,
-    api_key:process.env.CLOUDINARY_APIKEY,
-    api_secret:process.env.CLOUDINARY_APIKEYSECRET  
-})
+  injectSpeedInsights();
 
 
-await connectDB()
 
-app.listen(process.env.PORT, () => {
-  console.log("Server is running on ", process.env.PORT);
-});
+
+
+  await connectDB()
+
+  app.listen(process.env.PORT, () => {
+    console.log("Server is running on ", process.env.PORT);
+  });

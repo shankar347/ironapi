@@ -7,6 +7,7 @@ import bcryptjs from "bcryptjs";
 import sendEnquiryConfirmation from "../helper/emailenquery.js";
 import Banner from "../models/bannerschema.js";
 import Video from "../models/videoschema.js";
+import Subscription from "../models/subscreptionschema.js";
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
@@ -199,12 +200,11 @@ const generateEmailOtp = async (req, res) => {
   }
 };
 
-
 const getProfile = async (req, res) => {
-  try { 
+  try {
     const user_id = req?.user?._id;
 
-    const user = await User.findById(user_id);
+    let user = await User.findById(user_id);
 
     if (!user) {
       return res.status(400).json({
@@ -212,15 +212,36 @@ const getProfile = async (req, res) => {
       });
     }
 
+    let subscription = await Subscription.findOne({
+      userid: user_id,
+      status: "active"
+    }).sort({ createdAt: -1 });
+
+    // check expiry
+    if (subscription && subscription.enddate && subscription.enddate < new Date()) {
+      subscription.status = "expired";
+      await subscription.save();
+      subscription = null;
+    }
+
+    // convert mongoose document → plain object
+    const userObj = user.toObject();
+
+    userObj.subscription = subscription;
+
     res.status(200).json({
-      data: user,
+      data: userObj,
       message: "User profile fetched successfully",
     });
+
   } catch (err) {
-    res.json({ err: "Error in fetching profile" });
     console.log(err);
+    res.status(500).json({
+      error: "Error in fetching profile",
+    });
   }
 };
+
 
 const Profileupdate = async (req, res) => {
   try {
@@ -343,6 +364,172 @@ const Homevideo=await Video.findOne({name:'homevideo'})
   }
 }
 
+  const createSubscriptionorder = async (req, res) => {
+    try {
+
+      const { plan, credits, totalamount, cloths } = req.body;
+
+      // Basic validation
+      if (!plan || !totalamount) {
+        return res.status(400).json({
+          success: false,
+          message: "Plan and total amount are required"
+        });
+      }
+
+      const startdate = new Date();
+      let enddate = null;
+
+      // Only Popular plan → 30 days validity
+      // if (plan === "Popular plan") {
+        enddate = new Date(startdate);
+        enddate.setDate(enddate.getDate() + 30);
+      // }
+      const subscription = new Subscription({
+        userid: req.user.id,
+        plan,
+        credits: credits || 0,
+        totalamount,
+        cloths,
+        startdate,
+        enddate,
+        status: "active"
+      });
+
+      console.log(subscription)
+      await subscription.save();
+
+      res.status(201).json({
+        success: true,
+        message: "Subscription created successfully",
+        subscription
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        success: false,
+        err: "Error in Create Subscription Order"
+      });
+    }
+  };
+
+
+  const updateSubscriptionAfterOrder = async (req, res) => {
+  try {
+
+    const { usedCredits, items } = req.body;
+    const userid = req.user.id;
+
+    const subscription = await Subscription.findOne({
+      userid,
+      status: "active"
+    });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Active subscription not found"
+      });
+    }
+
+    // Check credits
+    if (subscription.credits < usedCredits) {
+      return res.status(400).json({
+        success: false,
+        message: "Not enough credits"
+      });
+    }
+
+    // Validate cloth counts
+    for (let item of items) {
+
+      const cloth = subscription.cloths.find(
+        c => c.name.toLowerCase() === item.name.toLowerCase()
+      );
+
+      if (!cloth) {
+        return res.status(400).json({
+          success: false,
+          message: `${item.name} not allowed in this plan`
+        });
+      }
+
+      if (cloth.count < item.count) {
+        return res.status(400).json({
+          success: false,
+          message: `Not enough ${item.name} remaining`
+        });
+      }
+    }
+
+    // Update credits
+    subscription.credits -= usedCredits;
+
+    // Update cloth counts
+    items.forEach(item => {
+
+      const cloth = subscription.cloths.find(
+        c => c.name.toLowerCase() === item.name.toLowerCase()
+      );
+
+      cloth.count -= item.count;
+
+    });
+
+    await subscription.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription updated successfully",
+      subscription
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Error updating subscription"
+    });
+
+  }
+};
+
+
+const getSubscriptionById = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    const subscription = await Subscription.findById(id);
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Subscription not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      subscription
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Error fetching subscription"
+    });
+
+  }
+};
+
+
 export {
   SignUp,
   Login,
@@ -354,5 +541,8 @@ export {
   generateEmailOtp,
   Enquerymail,
   getbanners,
-  getHomevideo
+  getHomevideo,
+  createSubscriptionorder,
+  updateSubscriptionAfterOrder,
+  getSubscriptionById
 };

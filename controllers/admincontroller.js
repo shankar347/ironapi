@@ -1,10 +1,10 @@
 import Banner from "../models/bannerschema.js";
 import Order from "../models/orderschema.js";
 import User from "../models/userschema.js";
-import {v2 as cloudinary}  from 'cloudinary'
 import Video from "../models/videoschema.js";
 import Bookitem from "../models/bookitemschema.js";
 import Bookslot from "../models/bookslotshema.js";
+import cloudinary from "../config/cloudinary.js";
 
 const getAllusers = async (req, res) => {
   try {

@@ -41,7 +41,7 @@ const upload=multer({storage:multer.memoryStorage(),
 
 const uploadVideo=multer({storage:multer.memoryStorage(),
         limits:{
-                fileSize:1024*1024*25,
+                fileSize:1024*1024*100,
         }
 }).single('video')
 
@@ -70,11 +70,11 @@ const handlemultervideoupload=(req,res,next)=>{
                 if(err instanceof multer.MulterError){
                    if(err.code === 'LIMIT_FILE_SIZE')
                    {
-                     return  res.status(200).json({error:'file size should be less than 15MB'})
+                     return  res.status(200).json({error:'file size should be less than 100MB'})
                    } 
                    else if (err.code === 'LIMIT_FIELD_VALUE')
                    {
-                        return res.status(200).json({error:'file size should be less than 15MB'})
+                        return res.status(200).json({error:'file size should be less than 100MB'})
                    }
                    return res.status(200).json({error:err.message})
                 }
