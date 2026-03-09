@@ -12,6 +12,10 @@ const SubscriptionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  totalcredits:{
+    type: Number,
+    default:0
+  },
 
   credits: {
     type: Number,
@@ -19,6 +23,7 @@ const SubscriptionSchema = new mongoose.Schema({
   },
 
   totalamount: {
+
     type: Number,
     required: true
   },

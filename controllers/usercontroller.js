@@ -227,7 +227,7 @@ const getProfile = async (req, res) => {
     // convert mongoose document → plain object
     const userObj = user.toObject();
 
-    userObj.subscription = subscription;
+    userObj.subscription = subscription;  
 
     res.status(200).json({
       data: userObj,
@@ -385,10 +385,17 @@ const Homevideo=await Video.findOne({name:'homevideo'})
         enddate = new Date(startdate);
         enddate.setDate(enddate.getDate() + 30);
       // }
+
+      let subcredits=0
+
+      cloths.forEach((cloth)=>{
+        subcredits+=cloth.count
+      })
       const subscription = new Subscription({
         userid: req.user.id,
         plan,
-        credits: credits || 0,
+        credits: subcredits || 0,
+        totalcredits:subcredits,
         totalamount,
         cloths,
         startdate,

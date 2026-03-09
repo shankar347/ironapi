@@ -6,6 +6,7 @@ import {
   get_user_orders,
   getorder_by_id,
   update_flow_order,
+  verifyOrderPayment,
 } from "../controllers/ordercontroller.js";
 import Authadmin from "../middlewares/authadmin.js";
 import Authagent from "../middlewares/authagent.js";
@@ -13,6 +14,8 @@ import Authagent from "../middlewares/authagent.js";
 const router = express.Router();
 
 router.post("/createorder", Authuser, createorder);
+// In your payment routes
+router.post('/verify-order-payment', verifyOrderPayment);
 router.put("/updateorder", Authuser, Authagent, update_flow_order);
 router.get("/getuserorders", Authuser, get_user_orders);
 router.get("/getusrlastorder", Authuser, get_user_last_order);
