@@ -27,12 +27,21 @@ const createorder = async (req, res) => {
     let finalAmount = totalamount;
     let redeemedCredits = 0;
     let redeemedItems = [];
+   let usedCredits = 0;
 
     if (subscriptionRedemption) {
       finalAmount = subscriptionRedemption.payableAmount || totalamount;
-      redeemedCredits = subscriptionRedemption.usedCredits || 0;
       redeemedItems = subscriptionRedemption.redeemedItems || [];
+
+    subscriptionRedemption.redeemedItems.forEach((item) => {
+    usedCredits += item.count 
+  });
+
     }
+
+     
+
+
 
     // Map payment type to enum values
     const paymentTypeMap = {
@@ -67,7 +76,7 @@ const createorder = async (req, res) => {
       subscription_redemption: {
         used: !!subscriptionRedemption,
         subscriptionId: subscriptionRedemption?.subscriptionId || null,
-        redeemedCredits: redeemedCredits,
+        redeemedCredits: usedCredits,
         redeemedItems: redeemedItems,
         redeemedAt: subscriptionRedemption ? new Date() : null
       }
@@ -86,7 +95,7 @@ const createorder = async (req, res) => {
           user?._id
         );
       } catch (subError) {
-        console.error('Error updating subscription:', subError);
+        console.error('Error updatin  g subscription:', subError);
         // Don't fail the order if subscription update fails
         // Log it for manual intervention
       }
@@ -288,47 +297,453 @@ const update_flow_order = async (req, res) => {
   }
 };
 
-const get_user_orders = async (req, res) => {
+// Get user's last order
+const get_user_last_order = async (req, res) => {
   try {
-    const order = await Order.find({ userid: req.user._id })
+    const lastOrder = await Order.findOne({ userid: req.user._id })
       .sort({ createdAt: -1 })
-      .skip(1);
+      .populate({
+        path: 'subscription_redemption.subscriptionId',
+        select: 'plan credits cloths'
+      });
 
-    // console.log(order)
+    if (!lastOrder) {
+      return res.status(404).json({
+        error: "No orders found for user"
+      });
+    }
 
-    if (order.length === 0) {
-      res.status(404).json({
-        error: "No order is created for user",
+    res.status(200).json({
+      data: lastOrder,
+      message: "Last order fetched successfully"
+    });
+  } catch (error) {
+    console.error('Error fetching last order:', error);
+    res.status(500).json({
+      error: "Error in fetching the last order"
+    });
+  }
+};
+
+// Get order by ID
+const get_order_by_id = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const order = await Order.findById(id)
+      .populate({
+        path: 'subscription_redemption.subscriptionId',
+        select: 'plan credits cloths'
+      });
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Given order ID is not available"
+      });
+    }
+
+    // Verify the order belongs to the requesting user
+    if (order.userid.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        error: "You don't have permission to view this order"
       });
     }
 
     res.status(200).json({
       data: order,
-      message: "User orders fetched successfully",
+      message: "Order fetched successfully"
     });
   } catch (error) {
+    console.error('Error fetching order by ID:', error);
     res.status(500).json({
-      error: "Error in fetching the given order",
+      error: "Error in fetching the given order"
     });
   }
 };
 
-const get_user_last_order = async (req, res) => {
+// Get user orders (excluding the latest one)
+const get_user_orders = async (req, res) => {
   try {
-    const last_active_order = await Order.findOne({
-      userid: req.user._id,
-    }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userid: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(1) // Skip the latest order
+      .populate({
+        path: 'subscription_redemption.subscriptionId',
+        select: 'plan credits'
+      });
 
-    res.json({
-      message: "Your last order fetched successfully",
-      data: last_active_order,
+    res.status(200).json({
+      data: orders,
+      message: "User orders fetched successfully",
+      count: orders.length
     });
   } catch (error) {
-    rs.status(500).json({
-      error: "Error in fetching the given order",
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({
+      error: "Error in fetching user orders"
     });
   }
 };
+
+// Get detailed invoice information for an order
+const get_order_invoice_details = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findById(orderId)
+      .populate({
+        path: 'subscription_redemption.subscriptionId',
+        select: 'plan credits cloths'
+      });
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Order not found"
+      });
+    }
+
+    // Verify the order belongs to the requesting user
+    if (order.userid.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        error: "You don't have permission to view this order"
+      });
+    }
+
+    // Format order cloths for better readability in invoice
+    const formattedItems = order.order_cloths.map(cloth => ({
+      name: cloth.item,
+      quantity: parseInt(cloth.quantity) || 0,
+      cost: parseFloat(cloth.cost) || 0,
+      total: (parseInt(cloth.quantity) || 0) * (parseFloat(cloth.cost) || 0)
+    }));
+
+    // Calculate totals
+    const subtotal = formattedItems.reduce((sum, item) => sum + item.total, 0);
+    const totalAmount = parseFloat(order.order_totalamount) || 0;
+    const finalAmount = parseFloat(order.order_finalamount) || totalAmount;
+    const discountAmount = totalAmount - finalAmount;
+
+    // Format redeemed items if any
+    const redeemedItems = order.subscription_redemption?.redeemedItems?.map(item => ({
+      name: item.name,
+      count: item.count,
+      cost: item.cost || 0,
+      total: (item.count || 0) * (item.cost || 0)
+    })) || [];
+
+    // Prepare complete invoice details
+    const invoiceDetails = {
+      // Order Information
+      orderId: order._id,
+      orderNumber: order.orderid,
+      orderDate: order.order_date,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+
+      // Customer Information
+      customer: {
+        name: order.user_name,
+        phone: order.user_phoneno,
+        address: {
+          houseno: order.user_address?.houseno || '',
+          streetname: order.user_address?.streetname || '',
+          area: order.user_address?.area || '',
+          city: order.user_address?.city || '',
+          pincode: order.user_address?.pincode || ''
+        }
+      },
+
+      // Order Items
+      items: formattedItems,
+      totalItems: parseInt(order.order_totalcloths) || 0,
+
+      // Pricing Details
+      pricing: {
+        subtotal: subtotal,
+        totalAmount: totalAmount,
+        finalAmount: finalAmount,
+        discountAmount: discountAmount,
+        currency: 'INR'
+      },
+
+      // Service Details
+      service: {
+        timeSlot: order.order_slot,
+        deliverySpeed: order.order_deliveryspeed,
+        paymentType: order.order_paymenttype
+      },
+
+      // Payment Information
+      payment: {
+        status: order.payment_status,
+        details: order.payment_details || {},
+        method: order.order_paymenttype
+      },
+
+      // Subscription Redemption (if applicable)
+      subscriptionRedemption: order.subscription_redemption?.used ? {
+        used: true,
+        subscriptionId: order.subscription_redemption.subscriptionId,
+        redeemedCredits: order.subscription_redemption.redeemedCredits || 0,
+        redeemedItems: redeemedItems,
+        redeemedAt: order.subscription_redemption.redeemedAt
+      } : {
+        used: false
+      },
+
+      // Order Status Timeline
+      orderFlow: order.order_flow || [],
+
+      // Additional Information
+      agent: order.agent_id ? {
+        agentId: order.agent_id,
+        name: order.agent_name,
+        phone: order.agent_phoneno
+      } : null,
+
+      notes: order.notes,
+      
+      // Cancellation Status
+      cancellation: order.cancelled_at ? {
+        cancelled: true,
+        reason: order.cancellation_reason,
+        cancelledAt: order.cancelled_at
+      } : {
+        cancelled: false
+      }
+    };
+
+    res.status(200).json({
+      data: invoiceDetails,
+      message: "Invoice details fetched successfully"
+    });
+  } catch (error) {
+    console.error('Error fetching invoice details:', error);
+    res.status(500).json({
+      error: "Error in fetching invoice details"
+    });
+  }
+};
+
+// Get all user orders with pagination (optional)
+const get_all_user_orders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find({ userid: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'subscription_redemption.subscriptionId',
+        select: 'plan credits'
+      });
+
+    const totalOrders = await Order.countDocuments({ userid: req.user._id });
+
+    res.status(200).json({
+      data: orders,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalOrders / limit),
+        totalOrders,
+        limit
+      },
+      message: "User orders fetched successfully"
+    });
+  } catch (error) {
+    console.error('Error fetching all user orders:', error);
+    res.status(500).json({
+      error: "Error in fetching user orders"
+    });
+  }
+};
+
+// Get order statistics for user
+const get_user_order_stats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const stats = await Order.aggregate([
+      { $match: { userid: userId } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSpent: { 
+            $sum: { $toDouble: "$order_finalamount" } 
+          },
+          averageOrderValue: { 
+            $avg: { $toDouble: "$order_finalamount" } 
+          },
+          totalItems: { 
+            $sum: { $toInt: "$order_totalcloths" } 
+          }
+        }
+      }
+    ]);
+
+    // Get counts by payment status
+    const statusCounts = await Order.aggregate([
+      { $match: { userid: userId } },
+      {
+        $group: {
+          _id: "$payment_status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get monthly order trends
+    const monthlyTrends = await Order.aggregate([
+      { $match: { userid: userId } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 },
+          total: { $sum: { $toDouble: "$order_finalamount" } }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 6 }
+    ]);
+
+    res.status(200).json({
+      data: {
+        summary: stats[0] || {
+          totalOrders: 0,
+          totalSpent: 0,
+          averageOrderValue: 0,
+          totalItems: 0
+        },
+        statusBreakdown: statusCounts,
+        monthlyTrends
+      },
+      message: "Order statistics fetched successfully"
+    });
+  } catch (error) {
+    console.error('Error fetching order stats:', error);
+    res.status(500).json({
+      error: "Error in fetching order statistics"
+    });
+  }
+};
+
+// Update order payment details
+const update_order_payment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const paymentDetails = req.body;
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Order not found"
+      });
+    }
+
+    // Verify ownership
+    if (order.userid.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        error: "You don't have permission to update this order"
+      });
+    }
+
+    // Update payment details
+    order.payment_details = {
+      ...order.payment_details,
+      ...paymentDetails,
+      paid_at: paymentDetails.paid_at || new Date()
+    };
+
+    if (paymentDetails.status) {
+      order.payment_status = paymentDetails.status;
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      data: order,
+      message: "Payment details updated successfully"
+    });
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    res.status(500).json({
+      error: "Error in updating payment details"
+    });
+  }
+};
+
+// Cancel order
+const cancel_order = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Order not found"
+      });
+    }
+
+    // Verify ownership
+    if (order.userid.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        error: "You don't have permission to cancel this order"
+      });
+    }
+
+    // Check if order can be cancelled
+    if (!order.canBeCancelled()) {
+      return res.status(400).json({
+        error: "Order cannot be cancelled at this stage"
+      });
+    }
+
+    order.cancellation_reason = reason;
+    order.cancelled_at = new Date();
+
+    // If payment was made, update status to refunded or pending refund
+    if (order.payment_status === 'paid') {
+      order.payment_status = 'refunded';
+      
+      // Add refund details if you have them
+      if (!order.payment_details) {
+        order.payment_details = {};
+      }
+      order.payment_details.refund_details = {
+        refund_id: `REF${Date.now()}`,
+        refunded_at: new Date(),
+        refund_amount: parseFloat(order.order_finalamount),
+        refund_reason: reason
+      };
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      data: order,
+      message: "Order cancelled successfully"
+    });
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    res.status(500).json({
+      error: "Error in cancelling order"
+    });
+  }
+};
+
+
+
+
 
 export {
   createorder,
@@ -336,5 +751,11 @@ export {
   update_flow_order,
   get_user_orders,
   get_user_last_order,
-  verifyOrderPayment
+  verifyOrderPayment,
+  get_order_by_id,
+  get_order_invoice_details,
+  get_all_user_orders,
+  get_user_order_stats,
+  update_order_payment,
+  cancel_order
 };

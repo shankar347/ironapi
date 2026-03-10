@@ -89,20 +89,7 @@ async function sendOTP(email, otp) {
                     </tr>
                 </table>
 
-                <!-- Service Reminder -->
-                <div style="background-color: #fff9e6; border: 1px solid #ffeaa7; padding: 20px; margin: 30px 0; border-radius: 10px;">
-                    <h3 style="color: #e17055; margin-top: 0; font-size: 18px;">🏡 Your Home Services Partner:</h3>
-                    <p style="color: #636e72; margin: 10px 0; line-height: 1.6;">
-                        Access your profile to:
-                    </p>
-                    <ul style="color: #636e72; padding-left: 20px; margin: 10px 0;">
-                        <li style="margin-bottom: 8px;">📋 Book new home services</li>
-                        <li style="margin-bottom: 8px;">📊 Track ongoing service requests</li>
-                        <li style="margin-bottom: 8px;">⭐ View service history and ratings</li>
-                        <li style="margin-bottom: 8px;">💳 Manage payments and invoices</li>
-                        <li>👥 Update your contact preferences</li>
-                    </ul>
-                </div>
+               
 
                 <!-- Quick Action Button -->
                 <table width="100%" style="margin: 35px 0;">
