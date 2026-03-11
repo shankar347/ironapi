@@ -2,7 +2,7 @@ import DiscountCode from "../models/discountcode.js";
 import Order from "../models/orderschema.js";
 
 
-// CREATE DISCOUNT CODE
+// CREATE COUPON
 const Createdisocutncode = async (req, res) => {
   try {
 
@@ -13,6 +13,8 @@ const Createdisocutncode = async (req, res) => {
       discount_value,
       max_discount_amount,
       min_order_amount,
+      buy_quantity,
+      free_quantity,
       usage_limit,
       per_user_limit,
       valid_from,
@@ -35,6 +37,8 @@ const Createdisocutncode = async (req, res) => {
       discount_value,
       max_discount_amount,
       min_order_amount,
+      buy_quantity,
+      free_quantity,
       usage_limit,
       per_user_limit,
       valid_from,
@@ -45,7 +49,7 @@ const Createdisocutncode = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Discount coupon created successfully",
+      message: "Coupon created successfully",
       data: coupon
     });
 
@@ -61,15 +65,13 @@ const Createdisocutncode = async (req, res) => {
 
 
 
-// GET ALL COUPONS FOR USER (RESPECT USER LIMIT)
+// GET COUPONS AVAILABLE FOR USER
 const getAllDiscountCouponsForUser = async (req, res) => {
   try {
 
     const userId = req.user.id;
 
-    const coupons = await DiscountCode.find({
-      is_active: true
-    });
+    const coupons = await DiscountCode.find({ is_active: true });
 
     const availableCoupons = [];
 
@@ -207,7 +209,6 @@ const deleteDiscountCoupon = async (req, res) => {
 
   }
 };
-
 
 
 export {

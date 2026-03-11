@@ -19,6 +19,7 @@ import {
   getBanners,
   getBookingStatus,
   getbookItems,
+  getSubscriptionsAll,
   gettodayorders,
   toggleBookingStatus,
   updatebanner,
@@ -116,5 +117,6 @@ Router.delete('/deletebanner/:id',Authuser,Authadmin,deletebanner)
 Router.put('/updatevideo',Authuser,Authadmin,handlemultervideoupload,uploadHomeVideo)
 Router.put('/updatebookstatus',Authuser,Authadmin,toggleBookingStatus)
 Router.get('/getbookstatus',Authuser,getBookingStatus)
+Router.get('/allsubscriptions',Authuser,Authadmin,getSubscriptionsAll)
 
 export default Router;

@@ -7,7 +7,7 @@ import {
   getDiscountCouponById,
   updateDiscountCoupon,
   deleteDiscountCoupon
-} from "../controllers/discountController.js";
+} from "../controllers/disocuntcodecontroller.js";
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ const router = express.Router();
 // CREATE DISCOUNT COUPON (Admin / Authorized user)
 router.post(
   "/createdisocuntcode",
-  Authuser,
+  // Authuser,
   Createdisocutncode
 );
 

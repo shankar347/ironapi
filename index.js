@@ -8,6 +8,7 @@
   import TransactionRouter from "./routes/transactionroutes.js";
   import AdminRouter from "./routes/adminroutes.js";
   import PaymentRouter from './routes/paymentroutes.js'
+  import discountCodeRouter from './routes/discoutncoderoutes.js'
   import dotenv from "dotenv";
   import connectDB from "./helper/connectDb.js";
   import { injectSpeedInsights } from '@vercel/speed-insights';
@@ -39,6 +40,7 @@
   app.use("/api/v1/admin",AdminRouter );
   app.use("/api/v1/transactions", TransactionRouter);
   app.use('/api/v1/payments',PaymentRouter)
+  app.use('/api/v1/discount-code',discountCodeRouter)
 
   injectSpeedInsights();
 

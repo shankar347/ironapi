@@ -1,3 +1,4 @@
+import DiscountCode from "../models/discountcode.js";
 import Order from "../models/orderschema.js";
 import Subscription from "../models/subscreptionschema.js";
 import User from "../models/userschema.js";
@@ -5,7 +6,14 @@ import crypto from 'crypto';
 
 const createorder = async (req, res) => {
   try {
-    const { otherdetails, userdetails, order_cloths, subscriptionRedemption } = req.body;
+
+    const {
+      otherdetails,
+      userdetails,
+      order_cloths,
+      subscriptionRedemption,
+      coupon
+    } = req.body;
 
     const { area, city, houseno, name, phoneno, pincode, streetname } = userdetails;
 
@@ -16,45 +24,160 @@ const createorder = async (req, res) => {
     const checkuser_registered = await User.findById(user?._id);
 
     if (!checkuser_registered) {
-      return res.status(500).json({
-        error: "Please signup to book slots",
+      return res.status(400).json({
+        error: "Please signup to book slots"
       });
     }
 
     let orderid = (await Order.countDocuments({})) + 1;
 
-    // Calculate final amount considering subscription redemption
     let finalAmount = totalamount;
-    let redeemedCredits = 0;
     let redeemedItems = [];
-   let usedCredits = 0;
+    let usedCredits = 0;
+    let appliedCouponCode = null;
 
-    if (subscriptionRedemption) {
-      finalAmount = subscriptionRedemption.payableAmount || totalamount;
+    // =====================================================
+    // SUBSCRIPTION VALIDATION
+    // =====================================================
+
+    if (subscriptionRedemption && subscriptionRedemption.subscriptionId) {
+
+      const subscription = await Subscription.findById(subscriptionRedemption.subscriptionId);
+
+      if (!subscription) {
+        return res.status(400).json({
+          error: "Subscription not found"
+        });
+      }
+
       redeemedItems = subscriptionRedemption.redeemedItems || [];
 
-    subscriptionRedemption.redeemedItems.forEach((item) => {
-    usedCredits += item.count 
-  });
+      for (const item of redeemedItems) {
+
+        const clothInSubscription = subscription.cloths.find(
+          (c) => c.cloth === item.cloth
+        );
+
+        // if (!clothInSubscription) {
+        //   return res.status(400).json({
+        //     error: `${item.cloth} is not available in subscription`
+        //   });
+        // }
+
+        // if (item.count > clothInSubscription.count) {
+        //   return res.status(400).json({
+        //     error: `Not enough credits for ${item.cloth}. Available: ${clothInSubscription.count}, Requested: ${item.count}`
+        //   });
+        // }
+
+        usedCredits += item.count;
+
+      }
+
+      finalAmount = subscriptionRedemption.payableAmount || totalamount;
 
     }
 
-     
+    // =====================================================
+    // COUPON VALIDATION
+    // =====================================================
 
+    if (coupon && coupon.code) {
 
+      const couponDoc = await DiscountCode.findOne({ code: coupon.code });
 
-    // Map payment type to enum values
+      if (!couponDoc) {
+        return res.status(400).json({
+          error: "Invalid coupon"
+        });
+      }
+
+      const isValid = couponDoc.isValidCoupon(totalamount);
+
+      if (!isValid) {
+        return res.status(400).json({
+          error: "Coupon expired or invalid"
+        });
+      }
+
+      const userUsage = await Order.countDocuments({
+        userid: user._id,
+        discount_code: coupon.code
+      });
+
+      if (userUsage >= couponDoc.per_user_limit) {
+        return res.status(400).json({
+          error: "Coupon usage limit reached"
+        });
+      }
+
+      // Apply coupon logic
+      if (couponDoc.discount_type === "percentage") {
+
+        let discount = (totalamount * couponDoc.discount_value) / 100;
+
+        if (couponDoc.max_discount_amount) {
+          discount = Math.min(discount, couponDoc.max_discount_amount);
+        }
+
+        finalAmount = totalamount - discount;
+      }
+
+      if (couponDoc.discount_type === "flat") {
+
+        finalAmount = totalamount - couponDoc.discount_value;
+
+      }
+
+      if (couponDoc.discount_type === "free_delivery") {
+
+        finalAmount = totalamount - (coupon.discountAmount || 0);
+
+      }
+
+      if (couponDoc.discount_type === "buy_x_get_y") {
+
+        const totalItems = order_cloths.reduce((sum, item) => sum + item.count, 0);
+
+        if (totalItems >= couponDoc.buy_quantity) {
+
+          const freeItems =
+            Math.floor(totalItems / couponDoc.buy_quantity) *
+            couponDoc.free_quantity;
+
+          console.log("Free items:", freeItems);
+        }
+
+      }
+
+      appliedCouponCode = coupon.code;
+
+      couponDoc.used_count += 1;
+      couponDoc.per_user_limit -=1
+
+      await couponDoc.save();
+    }
+
+    // =====================================================
+    // PAYMENT TYPE MAPPING
+    // =====================================================
+
     const paymentTypeMap = {
-      'online payment': 'online',
-      'cash': 'cash',
-      'card': 'card',
-      'upi': 'upi',
-      'online': 'online'
+      "online payment": "online",
+      "cash": "cash",
+      "card": "card",
+      "upi": "upi",
+      "online": "online"
     };
+
+    // =====================================================
+    // CREATE ORDER
+    // =====================================================
 
     const order = new Order({
       orderid,
       userid: user?._id,
+      discount_code: appliedCouponCode,
       user_name: name,
       user_phoneno: phoneno,
       user_address: {
@@ -62,17 +185,20 @@ const createorder = async (req, res) => {
         streetname,
         area,
         city,
-        pincode,
+        pincode
       },
       order_cloths,
       order_date: new Date().toISOString(),
-      order_totalamount: totalamount, // Original amount
-      order_finalamount: finalAmount, // Amount after redemption
+      order_totalamount: totalamount,
+      order_finalamount: finalAmount,
       order_totalcloths: totalcloths,
       order_slot: timeslot,
-      order_paymenttype: paymentTypeMap[paymenttype?.toLowerCase()] || paymenttype || 'online',
-      order_deliveryspeed: deliverySpeed || 'normal',
-      payment_status: finalAmount === 0 ? 'paid' : 'pending',
+      order_paymenttype:
+        paymentTypeMap[paymenttype?.toLowerCase()] ||
+        paymenttype ||
+        "online",
+      order_deliveryspeed: deliverySpeed || "normal",
+      payment_status: finalAmount === 0 ? "paid" : "pending",
       subscription_redemption: {
         used: !!subscriptionRedemption,
         subscriptionId: subscriptionRedemption?.subscriptionId || null,
@@ -84,70 +210,99 @@ const createorder = async (req, res) => {
 
     await order.save();
 
-    // If subscription was used, update the subscription
+    // =====================================================
+    // UPDATE SUBSCRIPTION AFTER ORDER
+    // =====================================================
+
     if (subscriptionRedemption && subscriptionRedemption.subscriptionId) {
+
       try {
-        console.log(subscriptionRedemption,'sub')
+
         await updateSubscriptionAfterOrder(
           subscriptionRedemption.subscriptionId,
-          subscriptionRedemption.usedCredits,
-          subscriptionRedemption.redeemedItems,
+          usedCredits,
+          redeemedItems,
           user?._id
         );
+
       } catch (subError) {
-        console.error('Error updatin  g subscription:', subError);
-        // Don't fail the order if subscription update fails
-        // Log it for manual intervention
+
+        console.error("Subscription update failed:", subError);
+
       }
+
     }
 
     res.status(200).json({
       data: order,
-      message: "Order created successfully",
+      message: "Order created successfully"
     });
+
   } catch (error) {
-    console.log(error, 'err');
-    res.status(500).json({ error: "Error in creating the Order" });
+
+    console.log(error);
+
+    res.status(500).json({
+      error: "Error in creating the Order"
+    });
+
   }
 };
 
+
 // Helper function to update subscription
-const updateSubscriptionAfterOrder = async (subscriptionId,usedCredit, redeemedItems, userId) => {
+// Helper function to update subscription
+const updateSubscriptionAfterOrder = async (
+  subscriptionId,
+  usedCredit,
+  redeemedItems,
+  userId
+) => {
   const subscription = await Subscription.findById(subscriptionId);
 
   if (!subscription) {
-    throw new Error("Subscription not found");
+    console.log("Subscription not found");
+    return;
   }
 
-  console.log(redeemedItems);
+  console.log("Redeemed Items:", redeemedItems);
 
-  // Calculate total credits used
-  let usedCredits = 0;
+  let actualUsedCredits = 0;
 
   redeemedItems.forEach((item) => {
-    usedCredits += item.count 
-  });
 
-  // Decrease subscription credits
-  subscription.credits -= usedCredits;
-
-  // Update cloth counts
-  redeemedItems.forEach((item) => {
     const clothIndex = subscription.cloths.findIndex(
       (c) => c.name.toLowerCase() === item.name.toLowerCase()
     );
 
     if (clothIndex !== -1) {
-      subscription.cloths[clothIndex].count -= item.count;
+
+      const availableCount = subscription.cloths[clothIndex].count || 0;
+
+      // deduct only available quantity
+      const deduction = Math.min(item.count, availableCount);
+
+      subscription.cloths[clothIndex].count = Math.max(
+        0,
+        availableCount - deduction
+      );
+
+      actualUsedCredits += deduction;
     }
   });
+
+  // reduce subscription credits safely
+  subscription.credits = Math.max(
+    0,
+    (subscription.credits || 0) - actualUsedCredits
+  );
 
   // Add usage history
   subscription.usageHistory = subscription.usageHistory || [];
 
   subscription.usageHistory.push({
     date: new Date(),
-    usedCredits: usedCredits,
+    usedCredits: actualUsedCredits,
     items: redeemedItems,
     userId: userId,
   });

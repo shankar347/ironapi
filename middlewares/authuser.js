@@ -7,7 +7,7 @@ const Authuser=async(req,res,next)=>{
 
     try{
        const token=req?.cookies?.token 
-
+    //    console.log('here',token)
        if (!token)
        {
         return res.status(400).json({

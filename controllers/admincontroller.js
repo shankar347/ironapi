@@ -5,6 +5,7 @@ import Video from "../models/videoschema.js";
 import Bookitem from "../models/bookitemschema.js";
 import Bookslot from "../models/bookslotshema.js";
 import cloudinary from "../config/cloudinary.js";
+import Subscription from "../models/subscreptionschema.js";
 
 const getAllusers = async (req, res) => {
   try {
@@ -74,22 +75,21 @@ const getAgentorders = async (req, res) => {
 
 const getAgenttodayorders = async (req, res) => {
   try {
-    // Today's date range
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endOfToday = new Date(today);
-    endOfToday.setHours(23, 59, 59, 999);
 
-    // Yesterday's date range (for orders that said "tomorrow")
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23,59,59,999);
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const startOfYesterday = new Date(yesterday);
-    startOfYesterday.setHours(0, 0, 0, 0);
-    
+    startOfYesterday.setHours(0,0,0,0);
+
     const endOfYesterday = new Date(yesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);
+    endOfYesterday.setHours(23,59,59,999);
 
     const Orders = await Order.find({
       agent_id: req?.user?._id,
@@ -97,87 +97,83 @@ const getAgenttodayorders = async (req, res) => {
         {
           // Orders placed today
           order_date: {
-            $gte: today,
-            $lte: endOfToday,
+            $gte: today.toISOString(),
+            $lte: endOfToday.toISOString(),
           }
         },
         {
-          // Orders placed yesterday that have "tomorrow" in order_slot
-          // (meaning their "tomorrow" is today)
+          // Orders placed yesterday but slot says tomorrow
           order_date: {
-            $gte: startOfYesterday,
-            $lte: endOfYesterday,
+            $gte: startOfYesterday.toISOString(),
+            $lte: endOfYesterday.toISOString(),
           },
-          order_slot: { 
+          order_slot: {
             $regex: /tomorrow/i
           }
         }
       ]
-    }).sort({ createdAt: -1 });
+    }).sort({ order_date: -1 });
 
-    res.status(200).json({ 
-      message: "Agent today orders fetched successfully", 
+    res.status(200).json({
+      message: "Agent today orders fetched successfully",
       data: Orders,
-      count: Orders.length 
+      count: Orders.length
     });
+
   } catch (error) {
+
     console.log(error);
-    res.status(500).json({ 
-      message: "Error fetching agent orders", 
-      error: error.message 
+
+    res.status(500).json({
+      message: "Error fetching agent orders",
+      error: error.message
     });
+
   }
 };
 
 const gettodayorders = async (req, res) => {
   try {
-    // Today's date range
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endOfToday = new Date(today);
-    endOfToday.setHours(23, 59, 59, 999);
 
-    // Yesterday's date range (for orders that said "tomorrow")
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23,59,59,999);
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const startOfYesterday = new Date(yesterday);
-    startOfYesterday.setHours(0, 0, 0, 0);
-    
+    startOfYesterday.setHours(0,0,0,0);
+
     const endOfYesterday = new Date(yesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);
+    endOfYesterday.setHours(23,59,59,999);
 
     const Orders = await Order.find({
       $or: [
         {
-          // Orders placed today
           order_date: {
-            $gte: today,
-            $lte: endOfToday,
+            $gte: today.toISOString(),
+            $lte: endOfToday.toISOString(),
           }
         },
         {
-          // Orders placed yesterday that have "tomorrow" in order_slot
-          // (meaning their "tomorrow" is today)
           order_date: {
-            $gte: startOfYesterday,
-            $lte: endOfYesterday,
+            $gte: startOfYesterday.toISOString(),
+            $lte: endOfYesterday.toISOString(),
           },
-          order_slot: { 
-            $regex: /tomorrow/i
-          }
+          order_slot: { $regex: /tomorrow/i }
         }
       ]
-    }).sort({ createdAt: -1 });
+    }).sort({ order_date: -1 });
 
-    res
-      .status(200)
-      .json({ 
-        message: "Today orders fetched successfully", 
-        data: Orders,
-        count: Orders.length
-      });
+    res.status(200).json({
+      message: "Today orders fetched successfully",
+      data: Orders,
+      count: Orders.length
+    });
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Error fetching orders", error: error.message });
@@ -239,6 +235,8 @@ const getAllorders = async (req, res) => {
     console.log(error);
   }
 };
+
+
 
 const assignAgenttoOrders = async (req, res) => {
   try {
@@ -647,6 +645,69 @@ const getBookingStatus = async (req, res) => {
 };
 
 
+const getSubscriptionsAll = async (req, res) => {
+  try {
+    // Find all subscriptions
+    const subscriptions = await Subscription.find({}).sort({ createdAt: -1 });
+
+    if (subscriptions.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No subscriptions found",
+        count: 0,
+        subscriptions: []
+      });
+    }
+
+    // Get all unique user IDs from subscriptions
+    const userIds = [...new Set(subscriptions.map(sub => sub.userid.toString()))];
+
+    // Fetch all users in one query
+    const users = await User.find({ 
+      _id: { $in: userIds } 
+    }).select('name email phoneno address');
+
+    // Create a map of user details keyed by user ID
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user._id.toString()] = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneno: user.phoneno,
+        address: user.address
+      };
+    });
+
+    // Add user details to each subscription without modifying the original structure
+    const subscriptionsWithUsers = subscriptions.map(sub => {
+      const subObj = sub.toObject();
+      const userId = subObj.userid?.toString();
+      
+      // Add user details as a separate field
+      subObj.userDetails = userId && userMap[userId] ? userMap[userId] : null;
+      
+      return subObj;
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Subscriptions fetched successfully",
+      count: subscriptions.length,
+      subscriptions: subscriptionsWithUsers
+    });
+
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error);
+
+    res.status(500).json({
+      success: false,
+      message: "Error fetching subscriptions",
+      error: error.message
+    });
+  }
+};
+
 
 export {
   getAllagents,
@@ -670,5 +731,6 @@ export {
   deletebookItems,
   getbookItems,
   toggleBookingStatus,
-  getBookingStatus
+  getBookingStatus,
+  getSubscriptionsAll
 };
